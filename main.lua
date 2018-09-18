@@ -48,7 +48,9 @@ local function update()
     if changeMap[1] then
         for i = 1, 6, 1 do
             if changeMap[i + 1] then
-                local newPNG = io.open("./sprites/" .. tostring(party[i]) .. ".png", "rb") 
+                local id = party[i]
+                if id == 0xfd then id = "egg" end
+                local newPNG = io.open("./sprites/" .. id .. ".png", "rb") 
                 local newData = newPNG:read("*a")
                 newPNG:flush()
                 

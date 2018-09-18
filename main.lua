@@ -27,6 +27,8 @@ local function readParty()
 end
 
 local function didPartyChange()
+    if party[1] == 0 then return {false} end
+    
     local r = {false, false, false, false, false, false, false}
     
     for i = 1, 6, 1 do

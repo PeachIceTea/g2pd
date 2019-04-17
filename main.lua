@@ -48,6 +48,7 @@ local pkmNameDb = {"Bulbasaur", "Ivysaur", "Venusaur", "Charmander", "Charmeleon
     "Porygon2", "Stantler", "Smeargle", "Tyrogue", "Hitmontop", "Smoochum", "Elekid", "Magby", "Miltank",
     "Blissey", "Raikou", "Entei", "Suicune", "Larvitar", "Pupitar", "Tyranitar", "Lugia", "Ho-Oh", "Celebi"
 }
+
 -- code
 
 local prevParty = {0, 0, 0, 0, 0, 0}
@@ -87,10 +88,12 @@ local function didPartyChange()
 end
 
 local function getPNGPath(id)
-    if numberedSprites then
-        return "./sprites/" .. id .. ".png"
-    else
-        return "./sprites/" .. pkmNameDb[id] .. ".png"
+    if id > 0 and id <= table.getn(pkmNameDb) then
+        if numberedSprites then
+            return "./sprites/" .. id .. ".png"
+        else
+            return "./sprites/" .. pkmNameDb[id] .. ".png"
+        end
     end
 end
 
@@ -108,16 +111,18 @@ local function update()
                 else
                     pngPath = getPNGPath(id)
                 end
-                local newPNG = io.open(pngPath, "rb")
-                if newPNG == nil then
-                    vba.print(getPNGPath(party[i]) .. " is missing.")
-                else
-                    local newData = newPNG:read("*a")
-                    newPNG:flush()
-                    
-                    local oldPNG = io.open("./party/p" .. tostring(i) .. ".png", "wb")
-                    oldPNG:write(newData)
-                    oldPNG:flush()
+                if pngPath then
+                    local newPNG = io.open(pngPath, "rb")
+                    if newPNG == nil then
+                        vba.print(getPNGPath(party[i]) .. " is missing.")
+                    else
+                        local newData = newPNG:read("*a")
+                        newPNG:flush()
+                        
+                        local oldPNG = io.open("./party/p" .. tostring(i) .. ".png", "wb")
+                        oldPNG:write(newData)
+                        oldPNG:flush()
+                    end
                 end
             end
         end

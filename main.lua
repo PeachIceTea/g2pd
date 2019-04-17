@@ -144,4 +144,4 @@ end
 
 clearPartyDisplay()
 gui.register(update)
-vba.print("g2pd 1.2 loaded <3")
+vba.print("g2pd 1.3 loaded <3")

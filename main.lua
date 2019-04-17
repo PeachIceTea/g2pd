@@ -90,7 +90,7 @@ local function getPNGPath(id)
     if numberedSprites then
         return "./sprites/" .. id .. ".png"
     else
-        return "./sprites/" .. pkmNameDB[id] .. ".png"
+        return "./sprites/" .. pkmNameDb[id] .. ".png"
     end
 end
 

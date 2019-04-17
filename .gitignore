@@ -1,2 +1,3 @@
-sprites/*.png
-party/*.png
+sprites/*
+!.gitkeep
+party/*

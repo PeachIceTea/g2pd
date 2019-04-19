@@ -50,9 +50,8 @@ local pkmNameDb = {"Bulbasaur", "Ivysaur", "Venusaur", "Charmander", "Charmeleon
 }
 
 -- code
-
-local prevParty = {0, 0, 0, 0, 0, 0}
-local party = {0, 0, 0, 0, 0, 0}
+local currParty = {0, 0, 0, 0, 0, 0}    -- CURRENT frame party
+local printedParty = {0, 0, 0, 0, 0, 0} -- Currently drawn party
 
 local function copyArray(a, b)
     for i, v in pairs(a) do
@@ -61,34 +60,35 @@ local function copyArray(a, b)
 end
 
 local function readParty()
-    copyArray(party, prevParty)
     for  i = 1, 6, 1 do
         local p = memory.readbyteunsigned(partyAddress + i - 1)
-        if p ~= 255 then
-            party[i] = p
+        if p > 0 and p <= table.getn(pkmNameDb) then
+            currParty[i] = p
         else
-            party[i] = 0
+            currParty[i] = -1
         end
     end
 end
 
 local function didPartyChange()
-    if party[1] == 0 then return {false} end
-    
-    local r = {false, false, false, false, false, false, false}
+    -- Having no pokemon in the first slot is an invalid read
+    for i = 1, 6, 1 do
+        if currParty[i] == -1 then 
+            return false 
+        end 
+    end
     
     for i = 1, 6, 1 do
-        if prevParty[i] ~= party[i] then
-            r[1] = true
-            r[i + 1] = true 
+        if printedParty[i] ~= currParty[i] then
+            return true
         end
     end
 
-    return r
+    return false
 end
 
 local function getPNGPath(id)
-    if id > 0 and id <= table.getn(pkmNameDb) then
+    if id ~= -1 then
         if numberedSprites then
             return "./sprites/" .. id .. ".png"
         else
@@ -97,14 +97,22 @@ local function getPNGPath(id)
     end
 end
 
+local timesChanged = 300
 local function update()
     readParty()
 
-    local changeMap = didPartyChange()
-    if changeMap[1] then
+    local didChange = didPartyChange()
+    if didChange then
+        timesChanged = timesChanged + 1
+    else
+        timesChanged = 0
+    end
+
+    if timesChanged >= 300 or currParty[1] == 0 then
+        timesChanged = 0
         for i = 1, 6, 1 do
-            if changeMap[i + 1] then
-                local id = party[i]
+            local id = currParty[i]
+            if id ~= -1 and id ~= printedParty[i] then
                 local pngPath
                 if id == 0xfd then
                     pngPath = "./sprites/egg.png"
@@ -114,7 +122,7 @@ local function update()
                 if pngPath then
                     local newPNG = io.open(pngPath, "rb")
                     if newPNG == nil then
-                        vba.print(getPNGPath(party[i]) .. " is missing.")
+                        vba.print(getPNGPath(readParty[i]) .. " is missing.")
                     else
                         local newData = newPNG:read("*a")
                         newPNG:flush()
@@ -123,6 +131,7 @@ local function update()
                         oldPNG:write(newData)
                         oldPNG:flush()
                     end
+                    printedParty[i] = id
                 end
             end
         end
@@ -144,4 +153,4 @@ end
 
 clearPartyDisplay()
 gui.register(update)
-vba.print("g2pd 1.3 loaded <3")
+vba.print("g2pd 1.4 loaded <3")

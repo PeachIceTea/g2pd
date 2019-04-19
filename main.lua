@@ -1,7 +1,5 @@
--- Copyright 2018 Jonas Thiem
-
 -- Data
-local partyAddress = 0x0000DCD8
+local partyAddress = 0xDCDF
 local numberedSprites
 
 local numberPNG = io.open("./sprites/1.png", "rb+")
@@ -50,8 +48,9 @@ local pkmNameDb = {"Bulbasaur", "Ivysaur", "Venusaur", "Charmander", "Charmeleon
 }
 
 -- code
-local currParty = {0, 0, 0, 0, 0, 0}    -- CURRENT frame party
-local printedParty = {0, 0, 0, 0, 0, 0} -- Currently drawn party
+
+local prevParty = {0, 0, 0, 0, 0, 0}
+local party = {0, 0, 0, 0, 0, 0}
 
 local function copyArray(a, b)
     for i, v in pairs(a) do
@@ -60,35 +59,35 @@ local function copyArray(a, b)
 end
 
 local function readParty()
+    copyArray(party, prevParty)
     for  i = 1, 6, 1 do
-        local p = memory.readbyteunsigned(partyAddress + i - 1)
-        if p > 0 and p <= table.getn(pkmNameDb) then
-            currParty[i] = p
+        local p = memory.readbyteunsigned(partyAddress + 48 * (i - 1))
+        local l = memory.readbyteunsigned(partyAddress + 31 + 48 * (i - 1))
+        if p > 0 and p < table.getn(pkmNameDb) and l > 0 and l <= 100 then
+            party[i] = p
         else
-            currParty[i] = -1
+            party[i] = 0
         end
     end
 end
 
 local function didPartyChange()
-    -- Having no pokemon in the first slot is an invalid read
-    for i = 1, 6, 1 do
-        if currParty[i] == -1 then 
-            return false 
-        end 
-    end
+    if party[1] == 0 then return {false} end
+    
+    local r = {false, false, false, false, false, false, false}
     
     for i = 1, 6, 1 do
-        if printedParty[i] ~= currParty[i] then
-            return true
+        if prevParty[i] ~= party[i] then
+            r[1] = true
+            r[i + 1] = true
         end
     end
 
-    return false
+    return r
 end
 
 local function getPNGPath(id)
-    if id ~= -1 then
+    if id > 0 and id <= table.getn(pkmNameDb) then
         if numberedSprites then
             return "./sprites/" .. id .. ".png"
         else
@@ -97,22 +96,15 @@ local function getPNGPath(id)
     end
 end
 
-local timesChanged = 300
 local function update()
     readParty()
 
-    local didChange = didPartyChange()
-    if didChange then
-        timesChanged = timesChanged + 1
-    else
-        timesChanged = 0
-    end
-
-    if timesChanged >= 300 or currParty[1] == 0 then
-        timesChanged = 0
+    local changeMap = didPartyChange()
+    local partySize = memory.readbyteunsigned(0xDCD7)
+    if changeMap[1] and partySize >= 1 and partySize <= 6 then
         for i = 1, 6, 1 do
-            local id = currParty[i]
-            if id ~= -1 and id ~= printedParty[i] then
+            if changeMap[i + 1] then
+                local id = party[i]
                 local pngPath
                 if id == 0xfd then
                     pngPath = "./sprites/egg.png"
@@ -122,7 +114,7 @@ local function update()
                 if pngPath then
                     local newPNG = io.open(pngPath, "rb")
                     if newPNG == nil then
-                        vba.print(getPNGPath(readParty[i]) .. " is missing.")
+                        vba.print(getPNGPath(party[i]) .. " is missing.")
                     else
                         local newData = newPNG:read("*a")
                         newPNG:flush()
@@ -131,8 +123,20 @@ local function update()
                         oldPNG:write(newData)
                         oldPNG:flush()
                     end
-                    printedParty[i] = id
                 end
+            end
+        end
+        for i = partySize + 1, 6, 1 do
+            local newPNG = io.open("./sprites/0.png", "rb")
+            if newPNG == nil then
+                vba.print("0.png is missing in the sprites folder.")
+            else
+                local newData = newPNG:read("*a")
+                newPNG:flush()
+                        
+                local oldPNG = io.open("./party/p" .. tostring(i) .. ".png", "wb")
+                oldPNG:write(newData)
+                oldPNG:flush()
             end
         end
     end
@@ -153,4 +157,4 @@ end
 
 clearPartyDisplay()
 gui.register(update)
-vba.print("g2pd 1.4 loaded <3")
+vba.print("g2pd 1.5 loaded <3")
